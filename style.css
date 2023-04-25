@@ -1,0 +1,35 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.game-field-container{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 20vh 20vw;
+    border: solid black 2px;
+    background-color: bisque;
+    gap: 5px;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.game-field-container__cell {
+    width: 20%;
+    aspect-ratio: 1 / 1;
+    font-size: 72px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: brown;
+    border: solid black 3px;
+    border-radius: 30px;
+}
+
+.game-field-container__cell_empty {
+    background-color: bisque;
+    border: solid black 0px;
+}
