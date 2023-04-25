@@ -3,22 +3,29 @@
     padding: 0;
     box-sizing: border-box;
 }
-
-.game-field-container{
+.container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.game-field-container {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    margin: 20vh 20vw;
+    /* margin: 25vh 25vw; */
+    width: 600px;
+    height: 600px;
     border: solid black 2px;
     background-color: bisque;
-    gap: 5px;
+    gap: 2px;
     justify-content: center;
     padding: 20px 0;
 }
 
 .game-field-container__cell {
-    width: 20%;
-    aspect-ratio: 1 / 1;
+    width: 23%;
+    aspect-ratio: 1/1;
     font-size: 72px;
     text-align: center;
     display: flex;
