@@ -1,7 +1,7 @@
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1) + min); // The maximum is inclusive and the minimum is inclusive
+    return Math.floor(Math.random() * (max - min + 1) + min); 
 }
 
 class Cell{
@@ -27,28 +27,24 @@ class CellWithCoordinates extends Cell{
     row;
     #lastClickHandler;
     #lastNode;
-    #_eventHandlers = {};
     constructor(bindingNode, value, column, row, cellsArray){
         super(bindingNode, value);
         this.column = column;
         this.row = row;
         this.cellsArray = cellsArray;
     }
+
     setNewClickEventListener(clickHandler){
-        //debugger;
         if (this.#lastClickHandler != undefined){
-            //this.bindingNode.removeEventListener('click', this.#lastClickHandler, false);
             this.bindingNode.removeEventListener('click', this.#lastClickHandler);
             if (this.#lastNode != undefined)
                 this.#lastNode.removeEventListener('click', this.#lastClickHandler);
         }
         this.#lastClickHandler = clickHandler;
-        // this.#removeAllListeners();
-        // this.#addClickListener(clickHandler);
         this.bindingNode.addEventListener('click', clickHandler);
     }
+
     setNewNodeAndCoordinates(node, i, j) {
-        //debugger;
         this.#lastNode = this.bindingNode;
         if (node.textContent != ''){
             node.classList.add('game-field-container__cell_empty');
@@ -60,34 +56,6 @@ class CellWithCoordinates extends Cell{
         this.column = i;
         this.row = j;
     }
-    #addClickListener(handler, capture = false){
-        let node = this.bindingNode;
-        let event = 'click';
-        // if (!(event in this.#_eventHandlers)) {
-        //   this.#_eventHandlers[event] = []
-        // }
-        // here we track the events and their nodes (note that we cannot
-        // use node as Object keys, as they'd get coerced into a string
-        this.#_eventHandlers[event].push({ node: node, handler: handler, capture: capture })
-        node.addEventListener(event, handler, capture)
-      }
-     
-      #removeAllListeners() {
-        //debugger;
-        let targetNode = this.bindingNode;
-        let event = 'click';
-        // remove listeners from the matching nodes
-        if (this.#_eventHandlers[event] == undefined)
-            return;
-        this.#_eventHandlers[event]
-          .filter(({ node }) => node === targetNode)
-          .forEach(({ node, handler, capture }) => node.removeEventListener(event, handler, capture))
-     
-        // update _eventHandlers global
-        this.#_eventHandlers[event] = this.#_eventHandlers[event].filter(
-          ({ node }) => node !== targetNode,
-        )
-      }
 }
 
 class GameField{
@@ -122,10 +90,6 @@ class GameField{
         const rowsCount = this.#rowsCount;
         const columnsCount = this.#columnsCount;
         let currentNode = document.createElement('div');
-        //let currentCell = new CellWithCoordinates(currentNode, null, columnsCount-1, rowsCount-1);
-        // this.#emptyCell = currentCell;
-        //currentNode.classList.add('game-field-container__cell_empty');
-
         for (let i = 0; i < columnsCount; i++) {
             let cellsRow = [];
             for (let j = 0; j < rowsCount; j++) {
@@ -153,8 +117,6 @@ class GameField{
 class CellsUtilits{
     static TrySwapCellAndEmptyCell(cell, gameField){
         let emptyCell = gameField.emptyCell;
-        //console.log(emptyCell);
-        //debugger;
         if (this.CellsIsNearby(cell, emptyCell)){
             this.SwapCells(cell, emptyCell, gameField);
             return true;
@@ -189,8 +151,6 @@ class CellsUtilits{
         if (cell2.textContent == ''){
             gameField.emptyCell = cell2;
         }
-        
-        console.log(gameField.emptyCell);
     }
 
     static CellsIsNearby(cell1, cell2){
