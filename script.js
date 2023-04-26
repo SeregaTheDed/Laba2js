@@ -25,16 +25,69 @@ class Cell{
 class CellWithCoordinates extends Cell{
     column;
     row;
-    constructor(bindingNode, value, column, row){
+    #lastClickHandler;
+    #lastNode;
+    #_eventHandlers = {};
+    constructor(bindingNode, value, column, row, cellsArray){
         super(bindingNode, value);
         this.column = column;
         this.row = row;
+        this.cellsArray = cellsArray;
+    }
+    setNewClickEventListener(clickHandler){
+        //debugger;
+        if (this.#lastClickHandler != undefined){
+            //this.bindingNode.removeEventListener('click', this.#lastClickHandler, false);
+            this.bindingNode.removeEventListener('click', this.#lastClickHandler);
+            if (this.#lastNode != undefined)
+                this.#lastNode.removeEventListener('click', this.#lastClickHandler);
+        }
+        this.#lastClickHandler = clickHandler;
+        // this.#removeAllListeners();
+        // this.#addClickListener(clickHandler);
+        this.bindingNode.addEventListener('click', clickHandler);
     }
     setNewNodeAndCoordinates(node, i, j) {
+        //debugger;
+        this.#lastNode = this.bindingNode;
+        if (node.textContent != ''){
+            node.classList.add('game-field-container__cell_empty');
+        }
+        else{
+            node.classList.remove('game-field-container__cell_empty');
+        }
         this.bindingNode = node;
         this.column = i;
         this.row = j;
     }
+    #addClickListener(handler, capture = false){
+        let node = this.bindingNode;
+        let event = 'click';
+        // if (!(event in this.#_eventHandlers)) {
+        //   this.#_eventHandlers[event] = []
+        // }
+        // here we track the events and their nodes (note that we cannot
+        // use node as Object keys, as they'd get coerced into a string
+        this.#_eventHandlers[event].push({ node: node, handler: handler, capture: capture })
+        node.addEventListener(event, handler, capture)
+      }
+     
+      #removeAllListeners() {
+        //debugger;
+        let targetNode = this.bindingNode;
+        let event = 'click';
+        // remove listeners from the matching nodes
+        if (this.#_eventHandlers[event] == undefined)
+            return;
+        this.#_eventHandlers[event]
+          .filter(({ node }) => node === targetNode)
+          .forEach(({ node, handler, capture }) => node.removeEventListener(event, handler, capture))
+     
+        // update _eventHandlers global
+        this.#_eventHandlers[event] = this.#_eventHandlers[event].filter(
+          ({ node }) => node !== targetNode,
+        )
+      }
 }
 
 class GameField{
@@ -57,6 +110,10 @@ class GameField{
         return this.#cells;
     }
 
+    set emptyCell(value){
+        this.#emptyCell = value;
+    }
+
     get emptyCell(){
         return this.#emptyCell;
     }
@@ -64,11 +121,16 @@ class GameField{
     #initCells() {
         const rowsCount = this.#rowsCount;
         const columnsCount = this.#columnsCount;
+        let currentNode = document.createElement('div');
+        //let currentCell = new CellWithCoordinates(currentNode, null, columnsCount-1, rowsCount-1);
+        // this.#emptyCell = currentCell;
+        //currentNode.classList.add('game-field-container__cell_empty');
+
         for (let i = 0; i < columnsCount; i++) {
             let cellsRow = [];
             for (let j = 0; j < rowsCount; j++) {
                 let currentCell;
-                let currentNode = document.createElement('div');
+                currentNode = document.createElement('div');
                 currentNode.classList.add('game-field-container__cell');
                 if (i==rowsCount-1 && j==columnsCount-1){
                     currentCell = new CellWithCoordinates(currentNode, null, i, j);
@@ -78,26 +140,81 @@ class GameField{
                 else{
                     currentCell = new CellWithCoordinates(currentNode, rowsCount*i+j+1, i, j);
                 }
+                const f = (event)=> {CellsUtilits.TrySwapCellAndEmptyCell(currentCell, gameField)};
+                currentCell.setNewClickEventListener(f);
                 cellsRow.push(currentCell);
                 
             }
-            this.#cells.push(cellsRow);
+            this.cells.push(cellsRow);
         }
     }
 }
 
 class CellsUtilits{
-    static #lock;
+    static TrySwapCellAndEmptyCell(cell, gameField){
+        let emptyCell = gameField.emptyCell;
+        //console.log(emptyCell);
+        //debugger;
+        if (this.CellsIsNearby(cell, emptyCell)){
+            this.SwapCells(cell, emptyCell, gameField);
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    
+    static SwapCells(cell1, cell2, gameField){
+        let i1 = cell1.column;
+        let j1 = cell1.row;
+        let node1 = cell1.bindingNode;
+        let i2 = cell2.column;
+        let j2 = cell2.row;
+        let node2 = cell2.bindingNode;
+        let array = gameField.cells;
+        
+        let temp = array[i1][j1];
+        array[i1][j1] = array[i2][j2];
+        array[i2][j2] = temp;
+        
+        cell1.setNewNodeAndCoordinates(node2, i2, j2);
+        cell2.setNewNodeAndCoordinates(node1, i1, j1);
+        const f1 = (event)=> {CellsUtilits.TrySwapCellAndEmptyCell(cell1, gameField) };
+        const f2 = (event)=> {CellsUtilits.TrySwapCellAndEmptyCell(cell2, gameField) };
+        cell1.setNewClickEventListener(f1);
+        cell2.setNewClickEventListener(f2);
+        if (cell1.textContent == ''){
+            gameField.emptyCell = cell1;
+        }
+        if (cell2.textContent == ''){
+            gameField.emptyCell = cell2;
+        }
+        
+        console.log(gameField.emptyCell);
+    }
 
-    static SwapCells(cell1, cell2){
-        let cell1_i = cell1.column;
-        let cell1_j = cell1.row;
-        let cell1_node = cell1.bindingNode;
-        let cell2_i = cell2.column;
-        let cell2_j = cell2.row;
-        let cell2_node = cell2.bindingNode;
-        cell1.setNewNodeAndCoordinates(cell2_node, cell2_i, cell2_j);
-        cell2.setNewNodeAndCoordinates(cell1_node, cell1_i, cell1_j);
+    static CellsIsNearby(cell1, cell2){
+        let i1 = cell1.column;
+        let j1 = cell1.row;
+        let i2 = cell2.column;
+        let j2 = cell2.row;
+        if (i1==i2){
+            if (j1+1==j2){
+                return true;
+            }
+            if (j1-1==j2){
+                return true;
+            }
+        }
+        if (j1==j2){
+            if (i1+1==i2){
+                return true;
+            }
+            if (i1-1==i2){
+                return true;
+            }
+        }
+        return false;
     }
 
     static GetRandomCellAroundEmptyCell(gameField){
@@ -138,10 +255,3 @@ class CellsUtilits{
 
 let gameFieldNode = document.getElementById('parentNode');
 let gameField = new GameField(gameFieldNode);
-
-let a = gameField.cells[0][1]; 
-let b = gameField.cells[0][3];
-CellsUtilits.SwapCells(a, b);
-let c = CellsUtilits.GetRandomCellAroundEmptyCell(gameField);
-console.log(c.bindingNode);
- 

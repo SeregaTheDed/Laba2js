@@ -39,4 +39,5 @@
 .game-field-container__cell_empty {
     background-color: bisque;
     border: solid black 0px;
+    z-index: -1;
 }
