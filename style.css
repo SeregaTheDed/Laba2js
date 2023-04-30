@@ -10,7 +10,8 @@
     height: 100vh;
 }
 .game-field-container {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     flex-direction: row;
     flex-wrap: wrap;
     /* margin: 25vh 25vw; */
@@ -20,11 +21,11 @@
     background-color: bisque;
     gap: 2px;
     justify-content: center;
-    padding: 20px 0;
+    padding: 10px;
 }
 
 .game-field-container__cell {
-    width: 23%;
+    /* width: 23%; */
     aspect-ratio: 1/1;
     font-size: 72px;
     text-align: center;
