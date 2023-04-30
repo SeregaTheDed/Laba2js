@@ -31,7 +31,7 @@ class CellWithCoordinates extends Cell{
     row;
     #lastClickHandler;
     #lastNode;
-    constructor(bindingNode, value, column, row, cellsArray){
+    constructor(bindingNode, value, row, column, cellsArray){
         super(bindingNode, value);
         this.column = column;
         this.row = row;
@@ -57,8 +57,8 @@ class CellWithCoordinates extends Cell{
         else{
             node.classList.remove('game-field-container__cell_empty');
         }
-        this.column = i;
-        this.row = j;
+        this.row = i;
+        this.column = j;
         const f1 = (event)=> {CellsUtilits.TrySwapCellAndEmptyCell(this, gameField) };
         this.setNewClickEventListener(f1);
     }
@@ -212,13 +212,12 @@ class Animator{
 
 class GameField{
     #parentNode;
-    #rowsCount = 4;
-    #columnsCount = 4;
+    #rowsCount;
+    #columnsCount;
     #emptyCell;
     #cells = [];
     #winWordArray
     constructor(parentNode, gameVariation = new ElephantGameVariation4x4()){
-        
         this.#winWordArray = gameVariation.winWordArray;
         this.#rowsCount = gameVariation.rowsCount;
         this.#columnsCount = gameVariation.columnsCount;
@@ -230,6 +229,16 @@ class GameField{
             let row = Math.floor(i/this.#rowsCount);
             this.#parentNode.append(this.#cells[row][column].bindingNode);
         }
+        let keyboardControl = new KeyboardControl(this);
+        keyboardControl.Start();
+    }
+
+    get rowsCount(){
+        return this.#rowsCount;
+    }
+
+    get columnsCount(){
+        return this.#columnsCount;
     }
 
     get cells(){
@@ -289,7 +298,57 @@ class GameField{
     }
 }
 
-
+class KeyboardControl{
+    gameField;
+    constructor(gameField){
+        this.gameField = gameField;
+    }
+    Start(){
+        let keys = ['ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'];
+        document.onkeydown = (function(e){
+            if (keys.includes(e.key) === false)
+                return;
+            console.log(e.key);
+            if (e.key == 'ArrowUp'){
+                debugger;
+                if (this.gameField.emptyCell.row <= 0)
+                    return;
+                let row = this.gameField.emptyCell.row-1;
+                let column = this.gameField.emptyCell.column;
+                let swappingCell = this.gameField.cells[row][column];
+                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+            }
+            else if (e.key == 'ArrowRight'){
+                debugger;
+                if (this.gameField.emptyCell.column+1 >= this.gameField.columnsCount)
+                    return;
+                let row = this.gameField.emptyCell.row;
+                let column = this.gameField.emptyCell.column+1;
+                let swappingCell = this.gameField.cells[row][column];
+                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+            }
+            else if (e.key == 'ArrowDown'){
+                debugger;
+                if (this.gameField.emptyCell.row + 1 >= this.gameField.rowsCount)
+                    return;
+                let row = this.gameField.emptyCell.row+1;
+                let column = this.gameField.emptyCell.column;
+                let swappingCell = this.gameField.cells[row][column];
+                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+            }
+            else if (e.key == 'ArrowLeft'){
+                debugger;
+                if (this.gameField.emptyCell.column <= 0)
+                    return;
+                let row = this.gameField.emptyCell.row;
+                let column = this.gameField.emptyCell.column-1;
+                let swappingCell = this.gameField.cells[row][column];
+                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+            }
+            
+        }).bind(this);
+    }
+}
 
 class CellsUtilits{
     static TrySwapCellAndEmptyCell(cell, gameField){
@@ -304,11 +363,11 @@ class CellsUtilits{
     }
     
     static SwapCells(cell1, cell2, gameField, speed = 50){
-        let i1 = cell1.column;
-        let j1 = cell1.row;
+        let i1 = cell1.row;
+        let j1 = cell1.column;
         let node1 = cell1.bindingNode;
-        let i2 = cell2.column;
-        let j2 = cell2.row;
+        let i2 = cell2.row;
+        let j2 = cell2.column;
         let node2 = cell2.bindingNode;
         let array = gameField.cells;
 
@@ -331,10 +390,10 @@ class CellsUtilits{
     }
 
     static CellsIsNearby(cell1, cell2){
-        let i1 = cell1.column;
-        let j1 = cell1.row;
-        let i2 = cell2.column;
-        let j2 = cell2.row;
+        let i1 = cell1.row;
+        let j1 = cell1.column;
+        let i2 = cell2.row;
+        let j2 = cell2.column;
         if (i1==i2 && (j1+1==j2 || j1-1==j2)){
             return true;
         }
