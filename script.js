@@ -232,11 +232,15 @@ class ScoreSaver{
             break;
         }
         
-        let attempts = ScoreLoader.GetAttemptsByName(name);
+        let attempts = ScoreLoader.GetAttemptsByNameAndVariation(name, this.gameField.gameVariationName);
         if (attempts == undefined)
             attempts = [];
         attempts.push(this.gameField.stepCount);
-        localStorage.setItem(name, JSON.stringify(attempts))
+        let scoresByGamevariation = JSON.parse(localStorage.getItem(this.gameField.gameVariationName));
+        if (scoresByGamevariation == undefined)
+            scoresByGamevariation = new Object();
+        scoresByGamevariation[`${name}`] = attempts;
+        localStorage.setItem(this.gameField.gameVariationName, JSON.stringify(scoresByGamevariation))
     }
 }
 
@@ -245,13 +249,16 @@ class ScoreLoader{
         let scores = [];
         for(let i=0; i<localStorage.length; i++) {
             let key = localStorage.key(i);
-            let score = { key:key, attempts: JSON.parse(localStorage.getItem(key)) };
+            let score = { key:key, players: JSON.parse(localStorage.getItem(key)) };
             scores.push(score);
           }
         return scores;
     }
-    static GetAttemptsByName(name){
-        return JSON.parse(localStorage.getItem(name));
+    static GetAttemptsByNameAndVariation(name, gameVariation){
+        let scoresByGamevariation = JSON.parse(localStorage.getItem(gameVariation));
+        if (scoresByGamevariation == undefined)
+            return undefined
+        return scoresByGamevariation[`${name}`];
     }
 }
 
@@ -265,7 +272,9 @@ class GameField{
     #gameStarted = false;
     #gameEnd = false;
     #stepCount = false;
+    gameVariationName;
     constructor(parentNode, gameVariation = new StandartGameVariation4x4()){
+        this.gameVariationName = gameVariation.constructor.name;
         this.#winWordArray = gameVariation.winWordArray;
         this.#rowsCount = gameVariation.rowsCount;
         this.#columnsCount = gameVariation.columnsCount;
@@ -306,7 +315,7 @@ class GameField{
     }
     async StartGame(){
         await sleep(2000);
-        for (let i=0; i< 1000;i++){
+        for (let i=0; i< 10;i++){
             let randomCell = CellsUtilits.GetRandomCellAroundEmptyCell(this);
             CellsUtilits.TrySwapCellAndEmptyCell(randomCell, this);
             await sleep(10);
@@ -439,8 +448,8 @@ class CellsUtilits{
         let node2 = cell2.bindingNode;
         let array = gameField.cells;
 
-        //let animator = new Animator(cell1, cell2, animateDuration);
-        //animator.waitAnimation();
+        let animator = new Animator(cell1, cell2, animateDuration);
+        animator.waitAnimation();
         
         let temp = array[i1][j1];
         array[i1][j1] = array[i2][j2];
