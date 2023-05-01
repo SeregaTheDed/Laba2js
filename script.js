@@ -4,6 +4,10 @@ function getRandomIntInclusive(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min); 
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function arraysAreEqual (a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
   };
@@ -108,24 +112,19 @@ let gameVariations = [
 class Animator{
     cell1;
     cell2;
-    constructor(cell1, cell2, speed){
+    constructor(cell1, cell2, animateDuration){
         this.cell1 = cell1;
         this.cell2 = cell2;
-        this.speed = speed;
-    }
-    #test(object){
-        let current;
-        let last;
-        let direction;
+        this.speed = animateDuration;
     }
     #AnimateSwapCells(node1, node2, lastLeft1, lastTop1, lastLeft2, lastTop2){
         let topEnd1 = false;
         let topEnd2 = false;
         let leftEnd1 = false;
         let leftEnd2 = false;
-        //debugger;
-        node1.style.position = 'absolute';
-        node2.style.position = 'absolute';
+        debugger;
+        node1.style.position = 'relative';
+        node2.style.position = 'relative';
             let rect1 = node1.getBoundingClientRect();
             let rect2 = node2.getBoundingClientRect();
             let currentLeft1 = rect1.left;
@@ -187,27 +186,73 @@ class Animator{
         return topEnd1 == true && leftEnd1 == true && leftEnd2 == true && topEnd2 == true;
     }
     //(node1, node2, lastLeft1, lastTop1, lastLeft2, lastTop2)
-    async waitAnimation() {//TODO
+    async waitAnimation() {
         let node1 = this.cell1.bindingNode;
         let node2 = this.cell2.bindingNode;
+        node1.style.position = 'relative';
+        node1.style.position = 'relative';
         let rect1 = node1.getBoundingClientRect();
         let rect2 = node2.getBoundingClientRect();
         let lastLeft1 = rect1.left;
         let lastTop1 = rect1.top;
         let lastLeft2 = rect2.left;
         let lastTop2 = rect2.top;
-        await new Promise(resolve => {
-          const interval = setInterval(() => {
-            let animationIsEnd = this.#AnimateSwapCells(node1, node2, lastLeft1, lastTop1, lastLeft2, lastTop2);
-            if (animationIsEnd) {
-              resolve();
-              clearInterval(interval);
-            };
-          }, 100);
-        });
+        node1.style.width = rect1.width+'px';
+        node1.style.height = rect1.height+'px';
+        node2.style.width = rect2.width+'px';
+        node2.style.height = rect2.height+'px';
+
+        node1.style.left = rect2.left+'px';
+        node1.style.top = rect2.top+'px';
+        node2.style.left = rect1.left+'px';
+        node2.style.top = rect1.top+'px';
+        //left
+
+
+        //debugger;
+        await new Promise(r => setTimeout(r, this.speed));
         node1.style = '';
         node2.style = '';
       }
+}
+
+class ScoreSaver{
+    gameField;
+    constructor(gameField){
+        this.gameField = gameField;
+    }
+    SaveScore(){
+        let name = '';
+        while(true){
+            name = prompt('Enter your nickname:', 'user');
+            if (name.trim() == '' || name == undefined){
+                alert('Bad name!');
+                continue;
+            }
+            break;
+        }
+        
+        let attempts = ScoreLoader.GetAttemptsByName(name);
+        if (attempts == undefined)
+            attempts = [];
+        attempts.push(this.gameField.stepCount);
+        localStorage.setItem(name, JSON.stringify(attempts))
+    }
+}
+
+class ScoreLoader{
+    static GetScores(){
+        let scores = [];
+        for(let i=0; i<localStorage.length; i++) {
+            let key = localStorage.key(i);
+            let score = { key:key, attempts: JSON.parse(localStorage.getItem(key)) };
+            scores.push(score);
+          }
+        return scores;
+    }
+    static GetAttemptsByName(name){
+        return JSON.parse(localStorage.getItem(name));
+    }
 }
 
 class GameField{
@@ -217,7 +262,10 @@ class GameField{
     #emptyCell;
     #cells = [];
     #winWordArray
-    constructor(parentNode, gameVariation = new ElephantGameVariation4x4()){
+    #gameStarted = false;
+    #gameEnd = false;
+    #stepCount = false;
+    constructor(parentNode, gameVariation = new StandartGameVariation4x4()){
         this.#winWordArray = gameVariation.winWordArray;
         this.#rowsCount = gameVariation.rowsCount;
         this.#columnsCount = gameVariation.columnsCount;
@@ -237,6 +285,10 @@ class GameField{
         return this.#rowsCount;
     }
 
+    get stepCount(){
+        return this.#stepCount;
+    }
+
     get columnsCount(){
         return this.#columnsCount;
     }
@@ -252,8 +304,23 @@ class GameField{
     get emptyCell(){
         return this.#emptyCell;
     }
-
+    async StartGame(){
+        await sleep(2000);
+        for (let i=0; i< 1000;i++){
+            let randomCell = CellsUtilits.GetRandomCellAroundEmptyCell(this);
+            CellsUtilits.TrySwapCellAndEmptyCell(randomCell, this);
+            await sleep(10);
+        }
+        this.#gameStarted = true;
+    }
     CheckWin(){
+        if (this.#gameStarted !== true)
+            return;
+        if (this.#gameEnd === true){
+            alert('Game over!');
+            return;
+        }
+        this.#stepCount++;
         let cellsTextContent = [];
         for (let i = 0; i < this.#columnsCount; i++) {
             
@@ -266,6 +333,12 @@ class GameField{
             }
         }
         let result = arraysAreEqual(cellsTextContent, this.#winWordArray);
+        if (result === true){
+            
+            let scoreSaver = new ScoreSaver(this);
+            scoreSaver.SaveScore();
+            this.#gameEnd= true;
+        }
         console.log(result);
         return result;
     }
@@ -308,9 +381,7 @@ class KeyboardControl{
         document.onkeydown = (function(e){
             if (keys.includes(e.key) === false)
                 return;
-            console.log(e.key);
             if (e.key == 'ArrowUp'){
-                debugger;
                 if (this.gameField.emptyCell.row <= 0)
                     return;
                 let row = this.gameField.emptyCell.row-1;
@@ -319,7 +390,6 @@ class KeyboardControl{
                 CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             else if (e.key == 'ArrowRight'){
-                debugger;
                 if (this.gameField.emptyCell.column+1 >= this.gameField.columnsCount)
                     return;
                 let row = this.gameField.emptyCell.row;
@@ -328,7 +398,6 @@ class KeyboardControl{
                 CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             else if (e.key == 'ArrowDown'){
-                debugger;
                 if (this.gameField.emptyCell.row + 1 >= this.gameField.rowsCount)
                     return;
                 let row = this.gameField.emptyCell.row+1;
@@ -337,7 +406,6 @@ class KeyboardControl{
                 CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             else if (e.key == 'ArrowLeft'){
-                debugger;
                 if (this.gameField.emptyCell.column <= 0)
                     return;
                 let row = this.gameField.emptyCell.row;
@@ -362,7 +430,7 @@ class CellsUtilits{
         }
     }
     
-    static SwapCells(cell1, cell2, gameField, speed = 50){
+    static SwapCells(cell1, cell2, gameField, animateDuration = 2000){
         let i1 = cell1.row;
         let j1 = cell1.column;
         let node1 = cell1.bindingNode;
@@ -371,8 +439,8 @@ class CellsUtilits{
         let node2 = cell2.bindingNode;
         let array = gameField.cells;
 
-        // let animator = new Animator(cell1, cell2, speed);
-        // animator.waitAnimation();
+        //let animator = new Animator(cell1, cell2, animateDuration);
+        //animator.waitAnimation();
         
         let temp = array[i1][j1];
         array[i1][j1] = array[i2][j2];
@@ -441,3 +509,4 @@ class CellsUtilits{
 
 let gameFieldNode = document.getElementById('parentNode');
 let gameField1 = new GameField(gameFieldNode);
+gameField1.StartGame();
