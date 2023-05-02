@@ -80,16 +80,16 @@ Number.prototype.mod = function (n) {
     lastDirection;
     async GetRandomCellAroundEmptyCell(gameField){
         let emptyCell = gameField.emptyCell;
-        let i = emptyCell.column;
-        let j = emptyCell.row;
+        let i = emptyCell.row;
+        let j = emptyCell.column;
         let randomedCell;
         let directionsArray = ['up', 'right', 'down', 'left']
+        let direction;
         while(randomedCell == undefined || randomedCell == emptyCell){
             let randomNum = getRandomIntInclusive(0, 3);
             if (directionsArray[(randomNum+2).mod(4)] == this.lastDirection)
                 continue;
-            console.log(directionsArray[(randomNum+2).mod(4)] + ' ' + this.lastDirection)
-            let direction = directionsArray[randomNum];
+            direction = directionsArray[randomNum];
             switch (direction) {
                 case 'up':
                     randomedCell = gameField.cells[i-1];
@@ -114,8 +114,8 @@ Number.prototype.mod = function (n) {
                 default:
                     throw new Error();
             }
-            this.lastDirection = direction;
         }
+        this.lastDirection = direction;
         return randomedCell;
     }
 }
