@@ -10,7 +10,119 @@ function sleep(ms) {
 
 function arraysAreEqual (a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
-  };
+};
+
+Number.prototype.mod = function (n) {
+    "use strict";
+    return ((this % n) + n) % n;
+};
+
+  class CellsUtilits{
+    swappingNow = false;
+    async TrySwapCellAndEmptyCell(cell, gameField, animateDuration = 200){
+        let emptyCell = gameField.emptyCell;
+        if (await this.CellsIsNearby(cell, emptyCell)){
+            await this.SwapCells(cell, emptyCell, gameField, animateDuration);
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    
+    async SwapCells(cell1, cell2, gameField, animateDuration = 1000){
+        if (this.swappingNow)
+            return;
+        this.swappingNow = true;
+        let i1 = cell1.row;
+        let j1 = cell1.column;
+        let node1 = cell1.bindingNode;
+        let i2 = cell2.row;
+        let j2 = cell2.column;
+        let node2 = cell2.bindingNode;
+        let array = gameField.cells;
+
+        
+        
+        let temp = array[i1][j1];
+        array[i1][j1] = array[i2][j2];
+        array[i2][j2] = temp;
+
+        let animator = new Animator(cell1, cell2, animateDuration);
+        await animator.waitAnimation();
+        
+        cell1.setNewNodeAndCoordinates(node2, i2, j2, gameField);
+        cell2.setNewNodeAndCoordinates(node1, i1, j1, gameField);
+        if (cell1.textContent == ''){
+            gameField.emptyCell = cell1;
+        }
+        if (cell2.textContent == ''){
+            gameField.emptyCell = cell2;
+        }
+        gameField.CheckWin();
+        this.swappingNow = false;
+
+    }
+
+    async CellsIsNearby(cell1, cell2){  
+        let i1 = cell1.row;
+        let j1 = cell1.column;
+        let i2 = cell2.row;
+        let j2 = cell2.column;
+        if (i1==i2 && (j1+1==j2 || j1-1==j2)){
+            return true;
+        }
+        if (j1==j2 && (i1+1==i2 || i1-1==i2)){
+            return true;
+        }
+        return false;
+    }
+    lastDirection;
+    async GetRandomCellAroundEmptyCell(gameField){
+        let emptyCell = gameField.emptyCell;
+        let i = emptyCell.column;
+        let j = emptyCell.row;
+        let randomedCell;
+        let directionsArray = ['up', 'right', 'down', 'left']
+        while(randomedCell == undefined || randomedCell == emptyCell){
+            let randomNum = getRandomIntInclusive(0, 3);
+            if (directionsArray[(randomNum+2).mod(4)] == this.lastDirection)
+                continue;
+            console.log(directionsArray[(randomNum+2).mod(4)] + ' ' + this.lastDirection)
+            let direction = directionsArray[randomNum];
+            switch (direction) {
+                case 'up':
+                    randomedCell = gameField.cells[i-1];
+                    if (randomedCell != undefined)
+                        randomedCell = randomedCell[j];
+                    break;
+                case 'right':
+                    randomedCell = gameField.cells[i];
+                    if (randomedCell != undefined)
+                        randomedCell = randomedCell[j+1];
+                    break;
+                case 'down':
+                    randomedCell = gameField.cells[i+1];
+                    if (randomedCell != undefined)
+                        randomedCell = randomedCell[j];
+                    break;
+                case 'left':
+                    randomedCell = gameField.cells[i];
+                    if (randomedCell != undefined)
+                        randomedCell = randomedCell[j-1];
+                    break;
+                default:
+                    throw new Error();
+            }
+            this.lastDirection = direction;
+        }
+        return randomedCell;
+    }
+}
+
+
+let globalCellUtilits = new CellsUtilits();
+
 
 class Cell{
     #value;
@@ -63,7 +175,7 @@ class CellWithCoordinates extends Cell{
         }
         this.row = i;
         this.column = j;
-        const f1 = (event)=> {CellsUtilits.TrySwapCellAndEmptyCell(this, gameField) };
+        const f1 = (event)=> {globalCellUtilits.TrySwapCellAndEmptyCell(this, gameField) };
         this.setNewClickEventListener(f1);
     }
 }
@@ -109,111 +221,46 @@ let gameVariations = [
     new ElephantGameVariation4x4(),
     new StandartGameVariation5x5(),
 ];
-class Animator{
-    cell1;
-    cell2;
-    constructor(cell1, cell2, animateDuration){
+class Animator {
+    constructor(cell1, cell2, animateDuration) {
         this.cell1 = cell1;
         this.cell2 = cell2;
-        this.speed = animateDuration;
+        this.animateDuration = animateDuration;
     }
-    #AnimateSwapCells(node1, node2, lastLeft1, lastTop1, lastLeft2, lastTop2){
-        let topEnd1 = false;
-        let topEnd2 = false;
-        let leftEnd1 = false;
-        let leftEnd2 = false;
-        debugger;
-        node1.style.position = 'relative';
-        node2.style.position = 'relative';
-            let rect1 = node1.getBoundingClientRect();
-            let rect2 = node2.getBoundingClientRect();
-            let currentLeft1 = rect1.left;
-            let currentTop1 = rect1.top;
-            let currentLeft2 = rect2.left;
-            let currentTop2 = rect2.top;
-            //
-            if (currentLeft1 < lastLeft2){
-                currentLeft1 = Math.min(currentLeft1 + this.speed, lastLeft2);
-                node1.style.left = currentLeft1+'px';
-            }
-            else if (currentLeft1 > lastLeft2){
-                currentLeft1 = Math.max(currentLeft1 - this.speed, lastLeft2);
-                node1.style.left = currentLeft1+'px';
-            }
-            if (currentLeft1 == lastLeft2){
-                leftEnd1 = true;
-            }
-            //------------
-            if (currentTop1 < lastTop2){
-                currentTop1 = Math.min(currentTop1 + this.speed, lastTop2);
-                node1.style.top = currentTop1+'px';
-            }
-            else if (currentTop1 > lastTop2){
-                currentTop1 = Math.max(currentTop1 - this.speed, lastTop2);
-                node1.style.top = currentTop1+'px';
-            }
-            if (currentTop1 == lastTop2){
-                topEnd1 = true;
-            }
-            //------------
-            if (currentTop2 < lastTop1){
-                currentTop2 = Math.min(currentTop2 + this.speed, lastTop1);
-                node2.style.top = currentTop2+'px';
-            }
-            else if (currentTop2 > lastTop1){
-                currentTop1 = Math.max(currentTop2 - this.speed, lastTop1);
-                node2.style.top = currentTop2+'px';
-            }
-            if (currentTop2 == lastTop1){
-                topEnd2 = true;
-            }
-            //------------
-            if (currentLeft2 < lastLeft1){
-                currentLeft2 = Math.min(currentLeft2 + this.speed, lastLeft1);
-                node2.style.left = currentLeft2+'px';
-            }
-            else if (currentLeft2 > lastLeft1){
-                currentLeft2 = Math.max(currentLeft2 - this.speed, lastLeft1);
-                node2.style.left = currentLeft2+'px';
-            }
-            if (currentLeft2 == lastLeft1){
-                leftEnd2 = true;
-            }
-            //------------
 
-        
-            console.log(topEnd1, leftEnd1, leftEnd2, topEnd2);
-        return topEnd1 == true && leftEnd1 == true && leftEnd2 == true && topEnd2 == true;
-    }
-    //(node1, node2, lastLeft1, lastTop1, lastLeft2, lastTop2)
-    async waitAnimation() {
+    // Метод для ожидания окончания анимации
+    waitAnimation() {
+        // Получаем элементы div ячеек
         let node1 = this.cell1.bindingNode;
         let node2 = this.cell2.bindingNode;
-        node1.style.position = 'relative';
-        node1.style.position = 'relative';
-        let rect1 = node1.getBoundingClientRect();
-        let rect2 = node2.getBoundingClientRect();
-        let lastLeft1 = rect1.left;
-        let lastTop1 = rect1.top;
-        let lastLeft2 = rect2.left;
-        let lastTop2 = rect2.top;
-        node1.style.width = rect1.width+'px';
-        node1.style.height = rect1.height+'px';
-        node2.style.width = rect2.width+'px';
-        node2.style.height = rect2.height+'px';
 
-        node1.style.left = rect2.left+'px';
-        node1.style.top = rect2.top+'px';
-        node2.style.left = rect1.left+'px';
-        node2.style.top = rect1.top+'px';
-        //left
+        // Получаем текущее положение элементов
+        let startRect1 = node1.getBoundingClientRect();
+        let startRect2 = node2.getBoundingClientRect();
 
+        // Вычисляем расстояние, на которое должны переместиться элементы
+        let xDiff = startRect2.left - startRect1.left;
+        let yDiff = startRect2.top - startRect1.top;
 
-        //debugger;
-        await new Promise(r => setTimeout(r, this.speed));
-        node1.style = '';
-        node2.style = '';
-      }
+        // Применяем начальное положение элементов
+        node1.style.transform = `translate(${xDiff}px, ${yDiff}px)`;
+        node2.style.transform = `translate(${-xDiff}px, ${-yDiff}px)`;
+
+        // Включаем анимацию
+        node1.style.transition = `transform ${this.animateDuration}ms`;
+        node2.style.transition = `transform ${this.animateDuration}ms`;
+
+        // Возвращаем промис, который будет выполнен после окончания анимации
+        return new Promise(resolve => {
+            setTimeout(() => {
+                node1.style.transition = "";
+                node2.style.transition = "";
+                node1.style.transform = "";
+                node2.style.transform = "";
+                resolve();
+            }, this.animateDuration);
+        });
+    }
 }
 
 class ScoreSaver{
@@ -315,10 +362,10 @@ class GameField{
     }
     async StartGame(){
         await sleep(2000);
-        for (let i=0; i< 10;i++){
-            let randomCell = CellsUtilits.GetRandomCellAroundEmptyCell(this);
-            CellsUtilits.TrySwapCellAndEmptyCell(randomCell, this);
-            await sleep(10);
+        for (let i=-1; i <= 1; i+=0.05){
+            let randomCell = await globalCellUtilits.GetRandomCellAroundEmptyCell(this);
+            let animateDuration = (-(-i*i-0.1))*1000;
+            await globalCellUtilits.TrySwapCellAndEmptyCell(randomCell, this, animateDuration);
         }
         this.#gameStarted = true;
     }
@@ -370,7 +417,7 @@ class GameField{
                 else{
                     currentCell = new CellWithCoordinates(currentNode, this.#winWordArray[rowsCount*i+j], i, j);
                 }
-                const f = (event)=> {CellsUtilits.TrySwapCellAndEmptyCell(currentCell, this)};
+                const f = (event)=> {globalCellUtilits.TrySwapCellAndEmptyCell(currentCell, this)};
                 currentCell.setNewClickEventListener(f);
                 cellsRow.push(currentCell);
                 
@@ -396,7 +443,7 @@ class KeyboardControl{
                 let row = this.gameField.emptyCell.row-1;
                 let column = this.gameField.emptyCell.column;
                 let swappingCell = this.gameField.cells[row][column];
-                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+                globalCellUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             else if (e.key == 'ArrowRight'){
                 if (this.gameField.emptyCell.column+1 >= this.gameField.columnsCount)
@@ -404,7 +451,7 @@ class KeyboardControl{
                 let row = this.gameField.emptyCell.row;
                 let column = this.gameField.emptyCell.column+1;
                 let swappingCell = this.gameField.cells[row][column];
-                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+                globalCellUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             else if (e.key == 'ArrowDown'){
                 if (this.gameField.emptyCell.row + 1 >= this.gameField.rowsCount)
@@ -412,7 +459,7 @@ class KeyboardControl{
                 let row = this.gameField.emptyCell.row+1;
                 let column = this.gameField.emptyCell.column;
                 let swappingCell = this.gameField.cells[row][column];
-                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+                globalCellUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             else if (e.key == 'ArrowLeft'){
                 if (this.gameField.emptyCell.column <= 0)
@@ -420,101 +467,13 @@ class KeyboardControl{
                 let row = this.gameField.emptyCell.row;
                 let column = this.gameField.emptyCell.column-1;
                 let swappingCell = this.gameField.cells[row][column];
-                CellsUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
+                globalCellUtilits.TrySwapCellAndEmptyCell(swappingCell, this.gameField);
             }
             
         }).bind(this);
     }
 }
 
-class CellsUtilits{
-    static TrySwapCellAndEmptyCell(cell, gameField){
-        let emptyCell = gameField.emptyCell;
-        if (this.CellsIsNearby(cell, emptyCell)){
-            this.SwapCells(cell, emptyCell, gameField);
-            return true;
-        }
-        else{
-            return false;
-        }
-    }
-    
-    static SwapCells(cell1, cell2, gameField, animateDuration = 2000){
-        let i1 = cell1.row;
-        let j1 = cell1.column;
-        let node1 = cell1.bindingNode;
-        let i2 = cell2.row;
-        let j2 = cell2.column;
-        let node2 = cell2.bindingNode;
-        let array = gameField.cells;
-
-        let animator = new Animator(cell1, cell2, animateDuration);
-        animator.waitAnimation();
-        
-        let temp = array[i1][j1];
-        array[i1][j1] = array[i2][j2];
-        array[i2][j2] = temp;
-        
-        cell1.setNewNodeAndCoordinates(node2, i2, j2, gameField);
-        cell2.setNewNodeAndCoordinates(node1, i1, j1, gameField);
-        if (cell1.textContent == ''){
-            gameField.emptyCell = cell1;
-        }
-        if (cell2.textContent == ''){
-            gameField.emptyCell = cell2;
-        }
-        gameField.CheckWin();
-    }
-
-    static CellsIsNearby(cell1, cell2){
-        let i1 = cell1.row;
-        let j1 = cell1.column;
-        let i2 = cell2.row;
-        let j2 = cell2.column;
-        if (i1==i2 && (j1+1==j2 || j1-1==j2)){
-            return true;
-        }
-        if (j1==j2 && (i1+1==i2 || i1-1==i2)){
-            return true;
-        }
-        return false;
-    }
-
-    static GetRandomCellAroundEmptyCell(gameField){
-        let emptyCell = gameField.emptyCell;
-        let i = emptyCell.column;
-        let j = emptyCell.row;
-        let randomedCell;
-        while(randomedCell == undefined || randomedCell == emptyCell){
-            let direction = ['up', 'right', 'down', 'left'][getRandomIntInclusive(0, 3)];
-            switch (direction) {
-                case 'up':
-                    randomedCell = gameField.cells[i-1];
-                    if (randomedCell != undefined)
-                        randomedCell = randomedCell[j];
-                    break;
-                case 'right':
-                    randomedCell = gameField.cells[i];
-                    if (randomedCell != undefined)
-                        randomedCell = randomedCell[j+1];
-                    break;
-                case 'down':
-                    randomedCell = gameField.cells[i+1];
-                    if (randomedCell != undefined)
-                        randomedCell = randomedCell[j];
-                    break;
-                case 'left':
-                    randomedCell = gameField.cells[i];
-                    if (randomedCell != undefined)
-                        randomedCell = randomedCell[j-1];
-                    break;
-                default:
-                    throw new Error();
-            }
-        }
-        return randomedCell;
-    }
-}
 
 let gameFieldNode = document.getElementById('parentNode');
 let gameField1 = new GameField(gameFieldNode);

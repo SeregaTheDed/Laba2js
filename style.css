@@ -25,7 +25,7 @@
 }
 
 .game-field-container__cell {
-    transition: 2s;
+    /* transition: 2s; */
     /* width: 23%; */
     aspect-ratio: 1/1;
     font-size: 72px;
