@@ -16,8 +16,13 @@ Number.prototype.mod = function (n) {
     "use strict";
     return ((this % n) + n) % n;
 };
+function compareNumeric(a, b) {
+    if (a > b) return 1;
+    if (a == b) return 0;
+    if (a < b) return -1;
+}
 
-  class CellsUtilits{
+class CellsUtilits{
     swappingNow = false;
     async TrySwapCellAndEmptyCell(cell, gameField, animateDuration = 200){
         let emptyCell = gameField.emptyCell;
@@ -221,6 +226,13 @@ let gameVariations = [
     new ElephantGameVariation4x4(),
     new StandartGameVariation5x5(),
 ];
+let selectorNode = document.getElementById('selectID');
+for (let i = 0; i< gameVariations.length; i++){
+    let selectVariationNode = document.createElement('option');
+    selectVariationNode.value = i+'';
+    selectVariationNode.textContent = gameVariations[i].getDisctiption();
+    selectorNode.append(selectVariationNode);
+}
 class Animator {
     constructor(cell1, cell2, animateDuration) {
         this.cell1 = cell1;
@@ -362,7 +374,7 @@ class GameField{
     }
     async StartGame(){
         await sleep(2000);
-        for (let i=-1; i <= 1; i+=0.05){
+        for (let i=-0.5; i <= 0.5; i+=0.03){
             let randomCell = await globalCellUtilits.GetRandomCellAroundEmptyCell(this);
             let animateDuration = (-(-i*i-0.1))*1000;
             await globalCellUtilits.TrySwapCellAndEmptyCell(randomCell, this, animateDuration);
@@ -476,5 +488,42 @@ class KeyboardControl{
 
 
 let gameFieldNode = document.getElementById('parentNode');
-let gameField1 = new GameField(gameFieldNode);
-gameField1.StartGame();
+let gameField1;
+function startGameByButton(){
+    let index = document.querySelector('#selectID').selectedIndex;
+    document.querySelector('body > div.game-selector-container').style.display = 'none';
+    gameField1 = new GameField(gameFieldNode, gameVariations[index]);
+    gameField1.StartGame();
+}
+
+function fillStats(){
+    let statContainer = document.querySelector('body > div.stat-container');
+    let stats = ScoreLoader.GetScores();
+    for (let i=0; i < stats.length; i++){
+        let currentVariationStat = stats[i];
+        let currentGameVariationNode = document.createElement('div');
+        currentGameVariationNode.classList.add('stat-container__variation');
+        let title = document.createElement('h2');
+        title.textContent = currentVariationStat.key;
+        currentGameVariationNode.append(title);
+        for (var userName in currentVariationStat.players) {
+            if (currentVariationStat.hasOwnProperty(userName) == false) {
+                let currentUserState = document.createElement('div'); 
+                currentUserState.classList.add('man-and-attempts');
+                let name = document.createElement('h1');
+                name.textContent = userName;
+                currentUserState.append(name);
+                let attempts = currentVariationStat.players[userName]
+                attempts.sort(compareNumeric);
+                for (let j = 0; j < attempts.length; j++){
+                    let currentAttempNode = document.createElement('div');
+                    currentAttempNode.textContent = attempts[j];
+                    currentUserState.append(currentAttempNode);
+                }
+                currentGameVariationNode.append(currentUserState);
+            }
+        }
+        statContainer.append(currentGameVariationNode);
+    }
+}
+fillStats();
